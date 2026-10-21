@@ -150,25 +150,28 @@
   .app-container { position: relative; z-index: 10; width: 100%; height: 100dvh; display: flex; flex-direction: column; opacity: 0; transition: opacity 1.2s ease; }
   .app-container.show { opacity: 1; }
 
-  .tab-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px 16px 110px; display: none; opacity: 0; transition: opacity 0.4s ease; -webkit-overflow-scrolling: touch; }
+  .tab-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px 16px 140px; display: none; opacity: 0; transition: opacity 0.4s ease; -webkit-overflow-scrolling: touch; }
   .tab-content.active { display: flex; flex-direction: column; align-items: center; opacity: 1; }
 
+  /* ПАРЯЩЕЕ НИЖНЕЕ МЕНЮ */
   .bottom-nav {
-    position: absolute; bottom: 0; left: 0; right: 0; z-index: 50;
-    background: linear-gradient(180deg, #140820 0%, #0a0512 100%);
-    border-top: 1px solid rgba(255, 143, 177, 0.2);
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
-    display: flex; justify-content: space-around; padding: 10px 5px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    position: absolute; bottom: max(20px, env(safe-area-inset-bottom)); left: 15px; right: 15px; z-index: 50;
+    background: rgba(20, 8, 32, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 143, 177, 0.2);
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.05);
+    display: flex; justify-content: space-around; padding: 8px 4px;
   }
   .nav-btn {
     background: transparent; border: none; color: rgba(255, 255, 255, 0.4);
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     font-family: inherit; font-size: 10px; font-style: italic; cursor: pointer;
-    transition: all 0.3s ease; flex: 1; padding: 4px; border-radius: 12px;
+    transition: all 0.3s ease; flex: 1; padding: 8px 0; border-radius: 16px;
   }
   .nav-btn .icon { font-size: 22px; transition: transform 0.3s ease; filter: grayscale(1); opacity: 0.5; }
-  .nav-btn.active { color: #ff8fb1; }
+  .nav-btn.active { color: #ff8fb1; background: rgba(255, 45, 85, 0.1); }
   .nav-btn.active .icon { filter: grayscale(0); opacity: 1; transform: translateY(-3px) scale(1.15); }
 
   .title { font-size: clamp(22px, 5vw, 32px); font-style: italic; text-align: center; background: linear-gradient(90deg, #ffd1dc, #ff2d55, #ff8fb1); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gradientMove 4s linear infinite; margin-bottom: 10px; margin-top: 10px; filter: drop-shadow(0 0 20px rgba(255, 45, 85, 0.4)); }
@@ -460,6 +463,7 @@
     </div>
   </div>
 
+  <!-- ПАРЯЩЕЕ НИЖНЕЕ МЕНЮ -->
   <nav class="bottom-nav">
     <button class="nav-btn active" data-tab="tab-home"><span class="icon">🏠</span><span>Главная</span></button>
     <button class="nav-btn" data-tab="tab-games"><span class="icon">🎮</span><span>Игры</span></button>
@@ -1129,56 +1133,46 @@ flowerContainer.addEventListener('click', (e) => {
   setTimeout(() => { flowerEmoji.textContent = stage.emoji; flowerText.textContent = stage.text; flowerEmoji.style.transform = 'scale(1)'; const rect = flowerContainer.getBoundingClientRect(); burstHearts(rect.left + rect.width/2, rect.top + rect.height/2, 8); }, 200);
 });
 
-/* ===== ПАСХАЛКА "YOU" - теперь с файлом helloyou.mp3 ===== */
+/* ПАСХАЛКА "YOU" */
+let isHelloYouPlaying = false;
+
 function triggerEasterEgg() {
   const overlay = document.getElementById('easterEggScreen');
   const audio = document.getElementById('easterEggAudio');
   
-  // Выключаем романтическую музыку навсегда
-  isMusicPlaying = false;
-  if (audioCtx) { audioCtx.close(); audioCtx = null; }
-  
   overlay.classList.add('show');
   
-  // Сброс и воспроизведение
   audio.currentTime = 0;
   audio.volume = 1;
   
-  let fallbackTimer = null;
-  let audioPlayed = false;
+  audio.play().then(() => {
+    isHelloYouPlaying = true;
+    console.log("🎵 Играет helloyou.mp3");
+  }).catch(err => {
+    console.log("⚠️ Ошибка аудио (возможно файла нет):", err);
+  });
+
+  // Рандомное время: от 15 до 60 секунд
+  const randomTime = Math.floor(Math.random() * 45000) + 15000;
   
-  const playPromise = audio.play();
-  if (playPromise !== undefined) {
-    playPromise.then(() => {
-      audioPlayed = true;
-      console.log("🎵 Играет helloyou.mp3 (~4:10)");
-    }).catch((err) => {
-      console.log("⚠️ Файл helloyou.mp3 не найден или не может воспроизвестись:", err);
-      playEerieMusic();
-      fallbackTimer = setTimeout(() => { overlay.classList.remove('show'); }, 20000);
-    });
-  }
-  
-  // Когда трек закончится естественным путем - закрываем
-  audio.onended = () => {
-    if (fallbackTimer) clearTimeout(fallbackTimer);
+  clearTimeout(window.helloYouTimeout);
+  window.helloYouTimeout = setTimeout(() => {
     overlay.classList.remove('show');
-  };
-  
-  // Если что-то не так с файлом
-  audio.onerror = () => {
-    if (!audioPlayed && !fallbackTimer) {
-      playEerieMusic();
-      fallbackTimer = setTimeout(() => { overlay.classList.remove('show'); }, 20000);
-    }
-  };
+    // Музыка при этом продолжает играть (не ставим паузу)
+  }, randomTime);
 }
 
-/* ===== ПАСХАЛКА "АРТАС" ===== */
+// Возобновление музыки при возврате в приложение
+document.addEventListener('visibilitychange', () => {
+  const audio = document.getElementById('easterEggAudio');
+  if (document.visibilityState === 'visible' && isHelloYouPlaying && audio.paused && !audio.ended) {
+    audio.play().catch(() => {});
+  }
+});
+
+/* ПАСХАЛКА "АРТАС" */
 function triggerArthasEgg() {
   const overlay = document.getElementById('arthasEggScreen'), textEl = document.getElementById('arthasText');
-  isMusicPlaying = false;
-  if (audioCtx) { audioCtx.close(); audioCtx = null; }
   const phrases = ["Мне больно смотреть на тебя.. Артас","Почему ты ушёл?.. Артас","Ты стал холодным... Артас","Я помню тебя другим... Артас","Вернись, пожалуйста.. Артас"];
   textEl.textContent = phrases[Math.floor(Math.random() * phrases.length)];
   textEl.style.animation = 'none'; textEl.offsetHeight; textEl.style.animation = 'fadeText 2s ease 1s forwards';
@@ -1186,48 +1180,7 @@ function triggerArthasEgg() {
   setTimeout(() => overlay.classList.remove('show'), 8000);
 }
 
-function playEerieMusic() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const master = ctx.createGain(); master.gain.value = 0.2; master.connect(ctx.destination);
-  const notes = [110, 110, 130.81, 98, 110, 146.83, 130.81, 110];
-  let t = ctx.currentTime + 0.5;
-  notes.forEach((freq) => {
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.type = 'triangle'; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.5, t + 0.1);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
-    osc.connect(gain); gain.connect(master); osc.start(t); osc.stop(t + 3); t += 1.8;
-  });
-}
-
-/* ===== МУЗЫКА ===== */
-let audioCtx = null, masterGain = null, delayNode = null, feedbackGain = null, wetGain = null, musicScheduled = false, isMusicPlaying = true;
-const NOTE = { A2: 110.00, F2: 87.31, C3: 130.81, G2: 98.00, A4: 440.00, C5: 523.25, E5: 659.25, F5: 698.46, G4: 392.00, B4: 493.88, D5: 587.33, G5: 783.99, C4: 261.63, E4: 329.63 };
-function initAudio() {
-  if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  masterGain = audioCtx.createGain(); masterGain.gain.value = 0; masterGain.connect(audioCtx.destination);
-  delayNode = audioCtx.createDelay(1.0); delayNode.delayTime.value = 0.45; feedbackGain = audioCtx.createGain(); feedbackGain.gain.value = 0.4; wetGain = audioCtx.createGain(); wetGain.gain.value = 0.5;
-  delayNode.connect(feedbackGain); feedbackGain.connect(delayNode); delayNode.connect(wetGain); wetGain.connect(audioCtx.destination);
-  masterGain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 3);
-}
-function playNote(freq, startTime, duration, type = 'sine', vol = 0.12, reverb = true) {
-  if (!audioCtx || !isMusicPlaying) return;
-  const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = type; osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0, startTime); gain.gain.linearRampToValueAtTime(vol, startTime + 0.1); gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-  osc.connect(gain); gain.connect(masterGain); if (reverb) gain.connect(delayNode); osc.start(startTime); osc.stop(startTime + duration + 0.2);
-}
-const progression = [{ bass: NOTE.A2, arp: [NOTE.A4, NOTE.C5, NOTE.E5, NOTE.A4] }, { bass: NOTE.F2, arp: [NOTE.F5, NOTE.A4, NOTE.C5, NOTE.F5] }, { bass: NOTE.C3, arp: [NOTE.C4, NOTE.E4, NOTE.G4, NOTE.C5] }, { bass: NOTE.G2, arp: [NOTE.G4, NOTE.B4, NOTE.D5, NOTE.G5] }];
-const CHORD_DURATION = 3.5, FULL_CYCLE = progression.length * CHORD_DURATION;
-function scheduleMusic(startTime) {
-  if (!isMusicPlaying) return; let t = startTime;
-  for (let cycle = 0; cycle < 2; cycle++) {
-    progression.forEach((chord) => { playNote(chord.bass, t, CHORD_DURATION * 0.9, 'sine', 0.2); chord.arp.forEach((f, i) => playNote(f, t + i * 0.6, 1.8, 'sine', 0.09, true)); t += CHORD_DURATION; });
-  }
-  setTimeout(() => scheduleMusic(startTime + FULL_CYCLE * 2), (FULL_CYCLE * 2 - 1) * 1000);
-}
-
-/* РАСПАКОВКА */
+/* РАСПАКОВКА (БЕЗ МУЗЫКИ) */
 const giftBox = document.getElementById('giftBox');
 const unpackScreen = document.getElementById('unpackScreen');
 const unpackHint = document.getElementById('unpackHint');
@@ -1235,9 +1188,7 @@ const appContainer = document.getElementById('appContainer');
 
 giftBox.addEventListener('click', function openGift() {
   if (giftBox.classList.contains('opening')) return;
-  initAudio();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  if (!musicScheduled) { musicScheduled = true; scheduleMusic(audioCtx.currentTime + 0.5); }
+  
   giftBox.classList.add('opening');
   unpackHint.textContent = 'Открываем... ✨';
   setTimeout(() => {
@@ -1271,4 +1222,4 @@ document.addEventListener('click', (e) => {
 });
 </script>
 </body>
-  </html>
+</html>
